@@ -7,6 +7,7 @@ DB_USER ?= gator
 DB_PASS ?= gator_pass
 DB_NAME ?= gator
 DB_PORT ?= 5432
+MIGRATION_DIR := sql/schema
 GATOR_COMPOSE_CMD ?= docker compose
 
 testfile ?= "./..."
@@ -67,3 +68,11 @@ psql-notty:  ## Run psql on the postgres container (no-tty)
 .PHONY: psql-url
 psql-url:  ## Print the Postgres connection string
 	@echo "postgres://$(DB_USER):$(DB_PASS)@localhost:$(DB_PORT)/$(DB_NAME)"
+
+.PHONY: migrate-up
+migrate-up:
+	goose -dir $(MIGRATION_DIR) postgres "$(shell ($(MAKE) psql-url))" up
+
+.PHONY: migrate-down
+migrate-down:
+	goose -dir $(MIGRATION_DIR) postgres "$(shell ($(MAKE) psql-url))" down
