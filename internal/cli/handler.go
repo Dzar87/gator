@@ -16,6 +16,7 @@ import (
 
 var (
 	ErrUserExists   = errors.New("user already exists")
+	ErrFeedExists   = errors.New("feed already exists")
 	ErrUserNotFound = errors.New("user does not exist")
 	ErrBadArgs      = errors.New("bad command arguments")
 )
@@ -104,6 +105,45 @@ func handlerAggregate(ctx context.Context, s *state.State, cmd Command) error {
 	feed, err := rss.FetchFeed(ctx, url)
 	if err != nil {
 		return fmt.Errorf("agg: failed to fetch feed: %w", err)
+	}
+	fmt.Printf("Feed: %+v\n", feed)
+	return nil
+}
+
+func classifyAddFeedErr(err error) error {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return fmt.Errorf("addfeed: creating feed: %w", err)
+	}
+	if pqErr.Code.Name() == "unique_violation" && pqErr.Constraint == "feeds_url_key" {
+		return ErrFeedExists
+	}
+	return fmt.Errorf("addfeed: db error: %w", err)
+}
+
+func handlerAddFeed(ctx context.Context, s *state.State, cmd Command) error {
+	if len(cmd.Args) != 2 {
+		return fmt.Errorf("addfeed: %w", ErrBadArgs)
+	}
+	user, err := s.DB.GetUser(ctx, s.Cfg.CurrentUserName)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+	now := time.Now().UTC()
+	feedParams := database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: now,
+		UpdatedAt: now,
+		Name:      cmd.Args[0],
+		Url:       cmd.Args[1],
+		UserID:    user.ID,
+	}
+	feed, err := s.DB.CreateFeed(ctx, feedParams)
+	if err != nil {
+		return classifyAddFeedErr(err)
 	}
 	fmt.Printf("Feed: %+v\n", feed)
 	return nil
