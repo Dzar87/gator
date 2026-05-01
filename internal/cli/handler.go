@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Dzar87/gator/internal/database"
+	"github.com/Dzar87/gator/internal/rss"
 	"github.com/Dzar87/gator/internal/state"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -95,5 +96,15 @@ func handlerUsers(ctx context.Context, s *state.State, cmd Command) error {
 		}
 		fmt.Println("*", user.Name)
 	}
+	return nil
+}
+
+func handlerAggregate(ctx context.Context, s *state.State, cmd Command) error {
+	url := "https://www.wagslane.dev/index.xml"
+	feed, err := rss.FetchFeed(ctx, url)
+	if err != nil {
+		return fmt.Errorf("agg: failed to fetch feed: %w", err)
+	}
+	fmt.Printf("Feed: %+v\n", feed)
 	return nil
 }
