@@ -9,3 +9,10 @@ VALUES (
     $6
 )
 RETURNING *;
+
+-- name: GetFeedsWithUser :many
+SELECT
+    sqlc.embed(f),
+    sqlc.embed(u)
+FROM feeds f
+JOIN users u ON f.user_id = u.id;
