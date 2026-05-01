@@ -95,6 +95,14 @@ func handlerRegister(ctx context.Context, s *state, cmd command) error {
 	return nil
 }
 
+func handlerReset(ctx context.Context, s *state, cmd command) error {
+	if err := s.db.DeleteUsers(ctx); err != nil {
+		return fmt.Errorf("reset: delete users: %w", err)
+	}
+	s.logger.Info("users reset")
+	return nil
+}
+
 func (c *commands) run(ctx context.Context, s *state, cmd command) error {
 	f, ok := c.handlers[cmd.Name]
 	if !ok {
@@ -115,6 +123,7 @@ func newCommands() *commands {
 	}
 	c.register("login", handlerLogin)
 	c.register("register", handlerRegister)
+	c.register("reset", handlerReset)
 	return c
 }
 
