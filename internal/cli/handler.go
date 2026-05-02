@@ -24,7 +24,7 @@ var (
 )
 
 func requireCurrentUser(ctx context.Context, s *state.State) (database.User, error) {
-	user, err := s.Queries.GetUser(ctx, s.Cfg.CurrentUserName)
+	user, err := s.Queries.GetUserByName(ctx, s.Cfg.CurrentUserName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return database.User{}, ErrUserNotFound
@@ -45,7 +45,7 @@ func handlerLogin(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("login: %w", ErrBadArgs)
 	}
-	if _, err := s.Queries.GetUser(ctx, cmd.Args[0]); err != nil {
+	if _, err := s.Queries.GetUserByName(ctx, cmd.Args[0]); err != nil {
 		return classifyLoginErr(err)
 	}
 	if err := s.Cfg.SetUser(cmd.Args[0]); err != nil {
@@ -221,7 +221,7 @@ func handlerFollowFeed(ctx context.Context, s *state.State, cmd Command) error {
 	if err != nil {
 		return err
 	}
-	feed, err := s.Queries.GetFeed(ctx, cmd.Args[0])
+	feed, err := s.Queries.GetFeedByURL(ctx, cmd.Args[0])
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrFeedNotFound
