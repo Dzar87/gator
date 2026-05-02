@@ -7,31 +7,26 @@ package database
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 )
 
 const createFeed = `-- name: CreateFeed :one
-INSERT INTO feeds (id, created_at, updated_at, name, url, user_id)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO feeds (id, name, url, user_id)
+VALUES ($1, $2, $3, $4)
 RETURNING id, created_at, updated_at, name, url, user_id, last_fetched_at
 `
 
 type CreateFeedParams struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Name      string
-	Url       string
-	UserID    uuid.UUID
+	ID     uuid.UUID
+	Name   string
+	Url    string
+	UserID uuid.UUID
 }
 
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
 	row := q.db.QueryRowContext(ctx, createFeed,
 		arg.ID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
 		arg.Name,
 		arg.Url,
 		arg.UserID,
@@ -139,7 +134,7 @@ func (q *Queries) GetNextFeedToFetch(ctx context.Context) (Feed, error) {
 
 const markFeedFetched = `-- name: MarkFeedFetched :one
 UPDATE feeds
-SET last_fetched_at = NOW(), updated_at = NOW()
+SET last_fetched_at = CURRENT_TIMESTAMP, updated_at = DEFAULT
 WHERE feeds.id = $1
 RETURNING id, created_at, updated_at, name, url, user_id, last_fetched_at
 `

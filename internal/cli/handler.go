@@ -81,11 +81,8 @@ func handlerRegister(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("usage: %s <user_name>", cmd.Name)
 	}
-	now := time.Now().UTC()
 	userParams := database.CreateUserParams{
 		ID:        uuid.New(),
-		CreatedAt: now,
-		UpdatedAt: now,
 		Name:      cmd.Args[0],
 	}
 	user, err := s.Queries.CreateUser(ctx, userParams)
@@ -166,11 +163,8 @@ func handlerAddFeed(
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s <feed_name> <feed_url>", cmd.Name)
 	}
-	now := time.Now().UTC()
 	feedParams := database.CreateFeedParams{
 		ID:        uuid.New(),
-		CreatedAt: now,
-		UpdatedAt: now,
 		Name:      cmd.Args[0],
 		Url:       cmd.Args[1],
 		UserID:    user.ID,
@@ -189,8 +183,6 @@ func handlerAddFeed(
 	}
 	feedFollowParams := database.CreateFeedFollowParams{
 		ID:        uuid.New(),
-		CreatedAt: now,
-		UpdatedAt: now,
 		UserID:    user.ID,
 		FeedID:    feed.ID,
 	}
@@ -250,11 +242,8 @@ func handlerFollowFeed(
 		}
 		return err
 	}
-	now := time.Now().UTC()
 	feedFollowParams := database.CreateFeedFollowParams{
 		ID:        uuid.New(),
-		CreatedAt: now,
-		UpdatedAt: now,
 		UserID:    user.ID,
 		FeedID:    feed.ID,
 	}
