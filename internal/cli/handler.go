@@ -10,7 +10,6 @@ import (
 	"github.com/Dzar87/gator/internal/database"
 	"github.com/Dzar87/gator/internal/rss"
 	"github.com/Dzar87/gator/internal/state"
-	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -81,11 +80,7 @@ func handlerRegister(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("usage: %s <user_name>", cmd.Name)
 	}
-	userParams := database.CreateUserParams{
-		ID:        uuid.New(),
-		Name:      cmd.Args[0],
-	}
-	user, err := s.Queries.CreateUser(ctx, userParams)
+	user, err := s.Queries.CreateUser(ctx, cmd.Args[0])
 	if err != nil {
 		return classifyRegisterErr(err)
 	}
@@ -164,7 +159,6 @@ func handlerAddFeed(
 		return fmt.Errorf("usage: %s <feed_name> <feed_url>", cmd.Name)
 	}
 	feedParams := database.CreateFeedParams{
-		ID:        uuid.New(),
 		Name:      cmd.Args[0],
 		Url:       cmd.Args[1],
 		UserID:    user.ID,
@@ -182,7 +176,6 @@ func handlerAddFeed(
 		return classifyAddFeedErr(err)
 	}
 	feedFollowParams := database.CreateFeedFollowParams{
-		ID:        uuid.New(),
 		UserID:    user.ID,
 		FeedID:    feed.ID,
 	}
@@ -243,7 +236,6 @@ func handlerFollowFeed(
 		return err
 	}
 	feedFollowParams := database.CreateFeedFollowParams{
-		ID:        uuid.New(),
 		UserID:    user.ID,
 		FeedID:    feed.ID,
 	}

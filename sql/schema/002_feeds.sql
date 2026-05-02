@@ -1,7 +1,8 @@
 -- +goose Up
 CREATE TABLE feeds(
-    id UUID PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id UUID PRIMARY KEY DEFAULT (uuidv7()),
+    created_at TIMESTAMPTZ NOT NULL
+    GENERATED ALWAYS AS (uuid_extract_timestamp("id")) STORED,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     name TEXT NOT NULL,
     url TEXT NOT NULL UNIQUE,
