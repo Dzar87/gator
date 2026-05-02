@@ -293,3 +293,23 @@ func handlerUnfollow(
 	fmt.Printf("Stopped following: %s\n", feed.Name)
 	return nil
 }
+
+func scrapeFeeds(ctx context.Context, s *state.State) error {
+	feed, err := s.Queries.GetNextFeedToFetch(ctx)
+	if err != nil {
+		return fmt.Errorf("scrapefeeds: failed to get feed: %w", err)
+	}
+	feed, err = s.Queries.MarkFeedFetched(ctx, feed.ID)
+	if err != nil {
+		return fmt.Errorf("scrapefeeds: failed to mark feed: %w", err)
+	}
+	rssFeed, err := rss.FetchFeed(ctx, feed.Url)
+	if err != nil {
+		return fmt.Errorf("scrapefeeds: failed to fetch feed: %w", err)
+	}
+	fmt.Println(rssFeed.Channel.Title, ":")
+	for _, item := range rssFeed.Channel.Item {
+		fmt.Println("*", item.Title)
+	}
+	return nil
+}
