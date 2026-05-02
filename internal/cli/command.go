@@ -41,5 +41,7 @@ func NewCommands() *commands {
 	c.register("agg", handlerAggregate)
 	c.register("addfeed", handlerAddFeed)
 	c.register("feeds", handlerListFeeds)
+	c.register("follow", handlerFollowFeed)
+	c.register("following", handlerFollowing)
 	return c
 }
