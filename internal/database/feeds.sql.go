@@ -15,7 +15,7 @@ import (
 const createFeed = `-- name: CreateFeed :one
 INSERT INTO feeds (id, created_at, updated_at, name, url, user_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, created_at, updated_at, name, url, user_id
+RETURNING id, created_at, updated_at, name, url, user_id, last_fetched_at
 `
 
 type CreateFeedParams struct {
@@ -44,12 +44,13 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		&i.Name,
 		&i.Url,
 		&i.UserID,
+		&i.LastFetchedAt,
 	)
 	return i, err
 }
 
 const getFeedByURL = `-- name: GetFeedByURL :one
-SELECT id, created_at, updated_at, name, url, user_id FROM feeds WHERE url = $1
+SELECT id, created_at, updated_at, name, url, user_id, last_fetched_at FROM feeds WHERE url = $1
 `
 
 func (q *Queries) GetFeedByURL(ctx context.Context, url string) (Feed, error) {
@@ -62,13 +63,14 @@ func (q *Queries) GetFeedByURL(ctx context.Context, url string) (Feed, error) {
 		&i.Name,
 		&i.Url,
 		&i.UserID,
+		&i.LastFetchedAt,
 	)
 	return i, err
 }
 
 const getFeedsWithUser = `-- name: GetFeedsWithUser :many
 SELECT
-    f.id, f.created_at, f.updated_at, f.name, f.url, f.user_id,
+    f.id, f.created_at, f.updated_at, f.name, f.url, f.user_id, f.last_fetched_at,
     u.id, u.created_at, u.updated_at, u.name
 FROM feeds f
 JOIN users u ON f.user_id = u.id
@@ -95,6 +97,7 @@ func (q *Queries) GetFeedsWithUser(ctx context.Context) ([]GetFeedsWithUserRow, 
 			&i.Feed.Name,
 			&i.Feed.Url,
 			&i.Feed.UserID,
+			&i.Feed.LastFetchedAt,
 			&i.User.ID,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
