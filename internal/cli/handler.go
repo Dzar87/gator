@@ -21,6 +21,17 @@ var (
 	ErrBadArgs      = errors.New("bad command arguments")
 )
 
+func requireCurrentUser(ctx context.Context, s *state.State) (database.User, error) {
+	user, err := s.Queries.GetUser(ctx, s.Cfg.CurrentUserName)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return database.User{}, ErrUserNotFound
+		}
+		return database.User{}, err
+	}
+	return user, nil
+}
+
 func classifyLoginErr(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrUserNotFound
@@ -125,11 +136,8 @@ func handlerAddFeed(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("addfeed: %w", ErrBadArgs)
 	}
-	user, err := s.Queries.GetUser(ctx, s.Cfg.CurrentUserName)
+	user, err := requireCurrentUser(ctx, s)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return ErrUserNotFound
-		}
 		return err
 	}
 	now := time.Now().UTC()
