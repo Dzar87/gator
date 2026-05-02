@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/Dzar87/gator/internal/database"
@@ -290,6 +291,21 @@ func handlerUnfollow(
 	return nil
 }
 
+func classifyScrapeFeedDBErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return fmt.Errorf("scrapefeeds: creating post: %w", err)
+	}
+	if pqErr.Code.Name() == "unique_violation" &&
+		pqErr.Constraint == "posts_url_key" {
+		return nil
+	}
+	return fmt.Errorf("scrapefeeds: db error: %w", err)
+}
+
 func scrapeFeeds(ctx context.Context, s *state.State) error {
 	feed, err := s.Queries.GetNextFeedToFetch(ctx)
 	if err != nil {
@@ -304,8 +320,79 @@ func scrapeFeeds(ctx context.Context, s *state.State) error {
 		return fmt.Errorf("scrapefeeds: failed to fetch feed: %w", err)
 	}
 	fmt.Println(rssFeed.Channel.Title, ":")
+	var qParams database.CreatePostParams
 	for _, item := range rssFeed.Channel.Item {
-		fmt.Println("*", item.Title)
+		pubDate, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			s.Logger.Warn("Unable to parse pubDate", "rawPubDate", item.PubDate)
+		}
+		qParams = database.CreatePostParams{
+			Title: sql.NullString{
+				String: item.Title,
+				Valid: true,
+			},
+			Url: item.Link,
+			Description: sql.NullString{
+				String: item.Description,
+				Valid: true,
+			},
+			PublishedAt: sql.NullTime{
+				Time: pubDate,
+				Valid: (pubDate != time.Time{}),
+			},
+			FeedID: feed.ID,
+		}
+
+		_, err = s.Queries.CreatePost(ctx, qParams)
+		if err := classifyScrapeFeedDBErr(err); err != nil {
+			s.Logger.Error("Failed to save post", "err", err)
+		}
+	}
+	return nil
+}
+
+func handlerBrowse(
+	ctx context.Context, s *state.State, cmd Command, user database.User,
+) error {
+	if len(cmd.Args) > 1 {
+		return fmt.Errorf("usage: %s <limit>", cmd.Name)
+	}
+	var limit int32 = 2
+	if len(cmd.Args) == 1 {
+		parsedLimit, err := strconv.ParseInt(cmd.Args[0], 10, 32)
+		if err != nil {
+			s.Logger.Warn("Invalid limit, defaulting", "err", err)
+			parsedLimit = 2
+		} else if parsedLimit < 1 {
+			s.Logger.Warn("Invalid limit, defaulting", "err", "limit less than 1")
+			parsedLimit = 2
+		}
+		limit = int32(parsedLimit)
+	}
+	qParams := database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit: limit,
+	}
+	rows, err := s.Queries.GetPostsForUser(ctx, qParams)
+	if err != nil {
+		return err
+	}
+	if len(rows) == 0 {
+		fmt.Println("No posts found.")
+		return nil
+	}
+	tmpl := `========
+Title: %s
+Published At: %s
+Description: %s
+Link: %s
+Feed: %s
+`
+	for _, post := range rows {
+		fmt.Printf(
+			tmpl,
+			post.Title.String, post.PublishedAt.Time.Format(time.RFC1123Z), post.Description.String, post.Url, post.FeedName,
+		)
 	}
 	return nil
 }
