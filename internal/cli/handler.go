@@ -34,6 +34,18 @@ func requireCurrentUser(ctx context.Context, s *state.State) (database.User, err
 	return user, nil
 }
 
+func loggedIn(h func(
+	ctx context.Context, s *state.State, cmd Command, user database.User,
+) error) func(context.Context, *state.State, Command) error {
+	return func(ctx context.Context, s *state.State, cmd Command) error {
+		user, err := requireCurrentUser(ctx, s)
+		if err != nil {
+			return err
+		}
+		return h(ctx, s, cmd, user)
+	}
+}
+
 func classifyLoginErr(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrUserNotFound
@@ -134,13 +146,11 @@ func classifyAddFeedErr(err error) error {
 	return fmt.Errorf("addfeed: db error: %w", err)
 }
 
-func handlerAddFeed(ctx context.Context, s *state.State, cmd Command) error {
+func handlerAddFeed(
+	ctx context.Context, s *state.State, cmd Command, user database.User,
+) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("addfeed: %w", ErrBadArgs)
-	}
-	user, err := requireCurrentUser(ctx, s)
-	if err != nil {
-		return err
 	}
 	now := time.Now().UTC()
 	feedParams := database.CreateFeedParams{
@@ -213,13 +223,11 @@ func classifyFollowFeedErr(err error) error {
 	return fmt.Errorf("followfeed: db error: %w", err)
 }
 
-func handlerFollowFeed(ctx context.Context, s *state.State, cmd Command) error {
+func handlerFollowFeed(
+	ctx context.Context, s *state.State, cmd Command, user database.User,
+) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("followfeed: %w", ErrBadArgs)
-	}
-	user, err := requireCurrentUser(ctx, s)
-	if err != nil {
-		return err
 	}
 	feed, err := s.Queries.GetFeedByURL(ctx, cmd.Args[0])
 	if err != nil {
@@ -243,11 +251,9 @@ func handlerFollowFeed(ctx context.Context, s *state.State, cmd Command) error {
 	return nil
 }
 
-func handlerFollowing(ctx context.Context, s *state.State, cmd Command) error {
-	user, err := requireCurrentUser(ctx, s)
-	if err != nil {
-		return err
-	}
+func handlerFollowing(
+	ctx context.Context, s *state.State, cmd Command, user database.User,
+) error {
 	rows, err := s.Queries.GetFeedFollowsForUser(ctx, user.ID)
 	if err != nil {
 		return fmt.Errorf("following: couldn't list feeds: %w", err)
