@@ -20,7 +20,6 @@ var (
 	ErrFeedFollowExists = errors.New("feed follow already exists")
 	ErrUserNotFound     = errors.New("user does not exist")
 	ErrFeedNotFound     = errors.New("feed does not exist")
-	ErrBadArgs          = errors.New("bad command arguments")
 )
 
 func requireCurrentUser(ctx context.Context, s *state.State) (database.User, error) {
@@ -55,7 +54,7 @@ func classifyLoginErr(err error) error {
 
 func handlerLogin(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 1 {
-		return fmt.Errorf("login: %w", ErrBadArgs)
+		return fmt.Errorf("usage: %s <user_name>", cmd.Name)
 	}
 	if _, err := s.Queries.GetUserByName(ctx, cmd.Args[0]); err != nil {
 		return classifyLoginErr(err)
@@ -80,7 +79,7 @@ func classifyRegisterErr(err error) error {
 
 func handlerRegister(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 1 {
-		return fmt.Errorf("register: %w", ErrBadArgs)
+		return fmt.Errorf("usage: %s <user_name>", cmd.Name)
 	}
 	now := time.Now().UTC()
 	userParams := database.CreateUserParams{
@@ -150,7 +149,7 @@ func handlerAddFeed(
 	ctx context.Context, s *state.State, cmd Command, user database.User,
 ) error {
 	if len(cmd.Args) != 2 {
-		return fmt.Errorf("addfeed: %w", ErrBadArgs)
+		return fmt.Errorf("usage: %s <feed_name> <feed_url>", cmd.Name)
 	}
 	now := time.Now().UTC()
 	feedParams := database.CreateFeedParams{
@@ -227,7 +226,7 @@ func handlerFollowFeed(
 	ctx context.Context, s *state.State, cmd Command, user database.User,
 ) error {
 	if len(cmd.Args) != 1 {
-		return fmt.Errorf("followfeed: %w", ErrBadArgs)
+		return fmt.Errorf("usage: %s <feed_url>", cmd.Name)
 	}
 	feed, err := s.Queries.GetFeedByURL(ctx, cmd.Args[0])
 	if err != nil {
