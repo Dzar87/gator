@@ -32,7 +32,7 @@ func handlerLogin(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("login: %w", ErrBadArgs)
 	}
-	if _, err := s.DB.GetUser(ctx, cmd.Args[0]); err != nil {
+	if _, err := s.Queries.GetUser(ctx, cmd.Args[0]); err != nil {
 		return classifyLoginErr(err)
 	}
 	if err := s.Cfg.SetUser(cmd.Args[0]); err != nil {
@@ -64,7 +64,7 @@ func handlerRegister(ctx context.Context, s *state.State, cmd Command) error {
 		UpdatedAt: now,
 		Name:      cmd.Args[0],
 	}
-	user, err := s.DB.CreateUser(ctx, userParams)
+	user, err := s.Queries.CreateUser(ctx, userParams)
 	if err != nil {
 		return classifyRegisterErr(err)
 	}
@@ -78,7 +78,7 @@ func handlerRegister(ctx context.Context, s *state.State, cmd Command) error {
 }
 
 func handlerReset(ctx context.Context, s *state.State, cmd Command) error {
-	if err := s.DB.DeleteUsers(ctx); err != nil {
+	if err := s.Queries.DeleteUsers(ctx); err != nil {
 		return fmt.Errorf("reset: delete users: %w", err)
 	}
 	s.Logger.Info("users reset")
@@ -86,7 +86,7 @@ func handlerReset(ctx context.Context, s *state.State, cmd Command) error {
 }
 
 func handlerUsers(ctx context.Context, s *state.State, cmd Command) error {
-	users, err := s.DB.GetUsers(ctx)
+	users, err := s.Queries.GetUsers(ctx)
 	if err != nil {
 		return fmt.Errorf("users: couldn't list users: %w", err)
 	}
@@ -125,7 +125,7 @@ func handlerAddFeed(ctx context.Context, s *state.State, cmd Command) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("addfeed: %w", ErrBadArgs)
 	}
-	user, err := s.DB.GetUser(ctx, s.Cfg.CurrentUserName)
+	user, err := s.Queries.GetUser(ctx, s.Cfg.CurrentUserName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrUserNotFound
@@ -141,7 +141,8 @@ func handlerAddFeed(ctx context.Context, s *state.State, cmd Command) error {
 		Url:       cmd.Args[1],
 		UserID:    user.ID,
 	}
-	feed, err := s.DB.CreateFeed(ctx, feedParams)
+
+	feed, err := s.Queries.CreateFeed(ctx, feedParams)
 	if err != nil {
 		return classifyAddFeedErr(err)
 	}
@@ -150,7 +151,7 @@ func handlerAddFeed(ctx context.Context, s *state.State, cmd Command) error {
 }
 
 func handlerListFeeds(ctx context.Context, s *state.State, cmd Command) error {
-	rows, err := s.DB.GetFeedsWithUser(ctx)
+	rows, err := s.Queries.GetFeedsWithUser(ctx)
 	if err != nil {
 		return fmt.Errorf("listfeeds: couldn't list feeds: %w", err)
 	}

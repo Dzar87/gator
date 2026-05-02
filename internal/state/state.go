@@ -1,6 +1,7 @@
 package state
 
 import (
+	"database/sql"
 	"log/slog"
 
 	"github.com/Dzar87/gator/internal/config"
@@ -8,7 +9,8 @@ import (
 )
 
 type State struct {
-	Cfg    *config.Config
-	DB     *database.Queries
-	Logger *slog.Logger
+	Cfg     *config.Config
+	DB      *sql.DB
+	Queries *database.Queries
+	Logger  *slog.Logger
 }

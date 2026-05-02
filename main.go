@@ -60,6 +60,7 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("ping db: %w", err)
 	}
 	dbQueries := database.New(db)
-	s.DB = dbQueries
+	s.DB = db
+	s.Queries = dbQueries
 	return c.Run(ctx, &s, cmd)
 }
