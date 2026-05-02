@@ -26,28 +26,30 @@ help:  ## Show this help message
 help-targets:
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m  %-30s\033[0m %s\n", $$1, $$2}'
 
+# Go
 .PHONY: test
-test:
+test:  ## Run go test
 	go test $(testfile)
 
 .PHONY: test-cov
-test-cov:
+test-cov:  ## Run go test with coverage
 	go test -coverprofile=.cover $(testfile) \
 	    && go tool cover -func=.cover \
 		&& unlink .cover
 
 .PHONY: vet
-vet:
+vet:  ## Run go vet
 	go vet $(testfile)
 
 .PHONY: fmt
-fmt:
+fmt:  ## Run go fmt
 	test -z "$(shell go fmt . ./internal/...)"
 
 .PHONY: build
-build:
+build:  ## Build the project
 	go build . ./internal/...
 
+# Compose
 .PHONY: up
 up:  ## Run compose up in detached mode
 	$(GATOR_COMPOSE_CMD) up -d
@@ -56,7 +58,7 @@ up:  ## Run compose up in detached mode
 down:  ## Run compose down
 	$(GATOR_COMPOSE_CMD) down
 
-# POSTGRES
+# PostgrSQL
 .PHONY: psql
 psql:  ## Run psql on the postgres container
 	$(GATOR_COMPOSE_CMD) exec -it postgres psql -U $(DB_USER) -d postgres $(args)
@@ -69,10 +71,11 @@ psql-notty:  ## Run psql on the postgres container (no-tty)
 psql-url:  ## Print the Postgres connection string
 	@echo "postgres://$(DB_USER):$(DB_PASS)@localhost:$(DB_PORT)/$(DB_NAME)"
 
+# Goose
 .PHONY: migrate-up
-migrate-up:
+migrate-up:  ## Run goose up
 	goose -dir $(MIGRATION_DIR) postgres "$(shell ($(MAKE) psql-url))" up
 
 .PHONY: migrate-down
-migrate-down:
+migrate-down:  ## Run goose down
 	goose -dir $(MIGRATION_DIR) postgres "$(shell ($(MAKE) psql-url))" down
